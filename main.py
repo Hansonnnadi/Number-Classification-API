@@ -1,6 +1,11 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -35,35 +40,47 @@ async def get_fun_fact(n: int) -> str:
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                return data['text']  # Extract the 'text' field for the fun fact
-            return "No fact available."
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            data = response.json()
+            return data.get('text', "No fact available.")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error occurred: {e}")
+            return "No fact available due to HTTP error."
         except httpx.RequestError as e:
-            return f"Request error: {e}"
+            logger.error(f"Request error occurred: {e}")
+            return "No fact available due to a request error."
+        except Exception as e:
+            logger.error(f"Unexpected error occurred: {e}")
+            return "No fact available due to an unexpected error."
 
 @app.get("/api/classify-number")
 async def classify_number(number: str = Query(..., description="The number to classify")):
+    # Try to convert the number from string to integer manually
     try:
-        # Try to convert the number from string to integer
         number_int = int(number)
     except ValueError:
         # If conversion fails, return the error in the required format
+        logger.error(f"Invalid number input: {number}")
         return {"number": number, "error": True}
 
     # Proceed with classification logic
-    properties = []
-    if is_armstrong(number_int):
-        properties.append("armstrong")
-    properties.append("odd" if number_int % 2 else "even")
+    try:
+        properties = []
+        if is_armstrong(number_int):
+            properties.append("armstrong")
+        properties.append("odd" if number_int % 2 else "even")
 
-    fun_fact = await get_fun_fact(number_int)  # Asynchronously fetch the fun fact
+        fun_fact = await get_fun_fact(number_int)  # Asynchronously fetch the fun fact
 
-    return {
-        "number": number_int,
-        "is_prime": is_prime(number_int),
-        "is_perfect": is_perfect(number_int),
-        "properties": properties,
-        "digit_sum": sum(int(d) for d in str(number_int)),
-        "fun_fact": fun_fact
-    }
+        return {
+            "number": number_int,
+            "is_prime": is_prime(number_int),
+            "is_perfect": is_perfect(number_int),
+            "properties": properties,
+            "digit_sum": sum(int(d) for d in str(number_int)),
+            "fun_fact": fun_fact
+        }
+    except Exception as e:
+        # Catch any unexpected errors and return a 500 status code
+        logger.error(f"Internal Server Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
