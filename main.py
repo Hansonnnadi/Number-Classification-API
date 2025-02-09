@@ -43,22 +43,27 @@ async def get_fun_fact(n: int) -> str:
             return "Failed to fetch fun fact."
 
 @app.get("/api/classify-number")
-async def classify_number(number: int = Query(..., description="The number to classify")):
+async def classify_number(number: str = Query(..., description="The number to classify")):
+    # Try to convert the number from string to integer manually
     try:
-        properties = []
-        if is_armstrong(number):
-            properties.append("armstrong")
-        properties.append("odd" if number % 2 else "even")
-
-        fun_fact = await get_fun_fact(number)  # Asynchronously fetch the fun fact
-
-        return {
-            "number": number,
-            "is_prime": is_prime(number),
-            "is_perfect": is_perfect(number),
-            "properties": properties,
-            "digit_sum": sum(int(d) for d in str(number)),
-            "fun_fact": fun_fact
-        }
+        number_int = int(number)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid input. Please provide a valid integer.")
+        # If conversion fails, return the error in the required format
+        return {"number": number, "error": True}
+
+    # Proceed with classification logic
+    properties = []
+    if is_armstrong(number_int):
+        properties.append("armstrong")
+    properties.append("odd" if number_int % 2 else "even")
+
+    fun_fact = await get_fun_fact(number_int)  # Asynchronously fetch the fun fact
+
+    return {
+        "number": number_int,
+        "is_prime": is_prime(number_int),
+        "is_perfect": is_perfect(number_int),
+        "properties": properties,
+        "digit_sum": sum(int(d) for d in str(number_int)),
+        "fun_fact": fun_fact
+    }
