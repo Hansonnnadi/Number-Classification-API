@@ -1,20 +1,21 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
+import asyncio
 
 app = FastAPI()
 
 # CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
+# Helper functions
 def is_prime(n: int) -> bool:
-    """Check if a number is prime."""
     if n < 2:
         return False
     for i in range(2, int(n ** 0.5) + 1):
@@ -23,45 +24,41 @@ def is_prime(n: int) -> bool:
     return True
 
 def is_perfect(n: int) -> bool:
-    """Check if a number is perfect."""
     return n > 0 and sum(i for i in range(1, n) if n % i == 0) == n
 
 def is_armstrong(n: int) -> bool:
-    """Check if a number is an Armstrong number."""
     digits = [int(d) for d in str(n)]
     return sum(d ** len(digits) for d in digits) == n
 
-def get_fun_fact(n: int) -> str:
-    """Fetch a fun fact from Numbers API."""
+async def get_fun_fact(n: int) -> str:
     url = f"http://numbersapi.com/{n}/math?json=true"
-    try:
-        response = httpx.get(url, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            return data['text']  # Get the fun fact text
-        return "No fact available."
-    except httpx.RequestError:
-        return "Failed to fetch fun fact."
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                return data['text']  # Extract the 'text' field for the fun fact
+            return "No fact available."
+        except httpx.RequestError:
+            return "Failed to fetch fun fact."
 
 @app.get("/api/classify-number")
-def classify_number(number: int = Query(..., description="The number to classify")):
-    """Classify the number and return mathematical properties and a fun fact."""
+async def classify_number(number: int = Query(..., description="The number to classify")):
     try:
-        # Determine properties based on number
         properties = []
         if is_armstrong(number):
             properties.append("armstrong")
         properties.append("odd" if number % 2 else "even")
 
-        # Return classification result
+        fun_fact = await get_fun_fact(number)  # Asynchronously fetch the fun fact
+
         return {
             "number": number,
             "is_prime": is_prime(number),
             "is_perfect": is_perfect(number),
             "properties": properties,
             "digit_sum": sum(int(d) for d in str(number)),
-            "fun_fact": get_fun_fact(number)
+            "fun_fact": fun_fact
         }
-    except Exception as e:
-        return {"error": True, "message": str(e)}
-
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid input. Please provide a valid integer.")
