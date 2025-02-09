@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
-import asyncio
 
 app = FastAPI()
 
@@ -30,6 +29,7 @@ def is_armstrong(n: int) -> bool:
     digits = [int(d) for d in str(n)]
     return sum(d ** len(digits) for d in digits) == n
 
+# Asynchronous function to fetch fun fact
 async def get_fun_fact(n: int) -> str:
     url = f"http://numbersapi.com/{n}/math?json=true"
     async with httpx.AsyncClient() as client:
@@ -39,8 +39,8 @@ async def get_fun_fact(n: int) -> str:
                 data = response.json()
                 return data['text']  # Extract the 'text' field for the fun fact
             return "No fact available."
-        except httpx.RequestError:
-            return "Failed to fetch fun fact."
+        except httpx.RequestError as e:
+            return f"Request error: {e}"
 
 @app.get("/api/classify-number")
 async def classify_number(number: str = Query(..., description="The number to classify")):
