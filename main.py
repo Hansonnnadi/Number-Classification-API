@@ -31,8 +31,8 @@ def is_perfect(n: int) -> bool:
     return n > 0 and sum(i for i in range(1, n) if n % i == 0) == n
 
 def is_armstrong(n: int) -> bool:
-    digits = [int(d) for d in str(n)]
-    return sum(d ** len(digits) for d in digits) == n
+    digits = [int(d) for d in str(abs(n))]
+    return sum(d ** len(digits) for d in digits) == abs(n)
 
 # Asynchronous function to fetch fun fact
 async def get_fun_fact(n: int) -> str:
@@ -80,7 +80,7 @@ async def classify_number(number: str = Query(..., description="The number to cl
             "is_prime": is_prime(number_int),
             "is_perfect": is_perfect(number_int),
             "properties": properties,
-            "digit_sum": sum(int(d) for d in str(number_int)),
+            "digit_sum": sum(int(d) for d in str(abs(number_int))),
             "fun_fact": fun_fact
         }
     except Exception as e:
