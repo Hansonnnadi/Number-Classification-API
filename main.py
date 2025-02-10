@@ -56,7 +56,7 @@ async def get_fun_fact(n: int) -> str:
 @app.get("/api/classify-number")
 async def classify_number(number: str = Query(..., description="The number to classify")):
     # Validate input number
-    if not number.lstrip('-').isdigit():
+    if not number.lstrip('-').isdigit() or number in ['-', '']:
         logger.error(f"Invalid number input: {number}")
         raise HTTPException(status_code=400, detail=f"Invalid number format: {number}. Please enter a valid integer.")
 
