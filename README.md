@@ -5,8 +5,8 @@ This API takes a number and returns interesting mathematical properties about it
 
 ## How to Use
 Make a **GET** request to the following URL:
-
-https://your-api.onrender.com/api/classify-number?number=371
+[
+https://number-classification-api-v2op.onrender.com/api/classify-number?number=371
 
 
 ### Example Response:
